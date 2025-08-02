@@ -5,7 +5,7 @@ on:
   push:
 
 env:
-  version: "135.0.1"
+  version: "FIREFOX_140_1_0esr_RELEASE"
 
 jobs:
   build:
@@ -85,13 +85,13 @@ jobs:
 
       - name: Fetch source
         run: |
-          mkdir cf_source_dir
-          curl -L "https://archive.mozilla.org/pub/firefox/releases/${version}/source/firefox-${version}.source.tar.xz"  | tar -xJ -C cf_source_dir --strip-components=1
+          # mkdir cf_source_dir
+          # curl -L "https://archive.mozilla.org/pub/firefox/releases/${version}/source/firefox-${version}.source.tar.xz"  | tar -xJ -C cf_source_dir --strip-components=1
+          git clone --branch ${version} --depth 1 https://github.com/mozilla-firefox/firefox.git cf_source_dir
 
       - name: Setup and bootstrap
         run: |
           cd cf_source_dir && MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
-          mkdir -p dist
 
       - name: Create swap space
         run: |
@@ -105,6 +105,7 @@ jobs:
         run: |
           export BUILD_TARGET=${{ matrix.target }},${{ matrix.arch }}
           python3 patch.py ${version} --mozconfig-only
+          python3 patch.py ${version}
           cd cf_source_dir && ./mach build && ./mach package && ./mach build installers-zh-CN
 
       - name: Upload artifacts

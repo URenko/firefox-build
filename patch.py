@@ -50,6 +50,11 @@ class Patcher:
             print(f'Using target: {self.moz_target}')
             self._update_mozconfig()
 
+            if not options.mozconfig_only:
+                # Apply all other patches
+                for patch_file in list_patches():
+                    patch(patch_file)
+
             print('Complete!')
 
     def _update_mozconfig(self):
