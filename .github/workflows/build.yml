@@ -52,6 +52,7 @@ jobs:
       - name: Setup and bootstrap
         run: |
           cd cf_source_dir && MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
+          git clone --depth 1 https://github.com/mozilla-l10n/firefox-l10n.git $HOME/.mozbuild/l10n-central
 
       - name: Create swap space
         run: |
@@ -73,9 +74,7 @@ jobs:
         with:
           name: ${{ matrix.target }}-${{ matrix.arch }}
           path: |
-            cf_source_dir/obj-*/dist/*.tar.xz
-            cf_source_dir/obj-*/dist/*.dmg
-            cf_source_dir/obj-*/dist/*.zip
+            cf_source_dir/obj-*/dist
 
   release:
     needs: build

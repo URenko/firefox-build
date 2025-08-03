@@ -30,3 +30,5 @@ mk_add_options MOZ_TELEMETRY_REPORTING=0
 # Branding
 export MOZILLA_OFFICIAL=1
 ac_add_options --enable-official-branding
+
+mk_add_options MOZ_PARALLEL_BUILD=2
