@@ -29,40 +29,13 @@ jobs:
           remove-haskell: "true"
           remove-codeql: "true"
           remove-docker-images: "true"
+          remove-large-packages: "true"
           remove-cached-tools: "true"
           remove-swapfile: "true"
-          verbose: "false"
-
-      - name: Remove unwanted tools
-        # Originally from here: https://github.com/AdityaGarg8/remove-unwanted-software/blob/master/action.yml
-        run: |
-          sudo apt-get remove -y '^aspnetcore-.*' > /dev/null
-          sudo apt-get remove -y '^dotnet-.*' > /dev/null
-          sudo apt-get remove -y '^llvm-.*' > /dev/null
-          sudo apt-get remove -y 'php.*' > /dev/null
-          sudo apt-get remove -y '^mongodb-.*' > /dev/null
-          sudo apt-get remove -y '^mysql-.*' > /dev/null
-          sudo apt-get remove -y azure-cli google-chrome-stable firefox ${POWERSHELL} mono-devel libgl1-mesa-dri --fix-missing > /dev/null
-          if [[ (${CODENAME} = focal) || (${CODENAME} = jammy) ]]; then
-            sudo apt-get remove -y google-cloud-sdk --fix-missing > /dev/null
-            sudo apt-get remove -y google-cloud-cli --fix-missing > /dev/null
-          fi
-          sudo apt-get autoremove -y > /dev/null
-          sudo apt-get clean > /dev/null
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      # - name: Set up Go
-      #   uses: actions/setup-go@v2
-      #   with:
-      #     go-version: "1.23"
-
-      # - name: Set up Python
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: "3.11"
 
       - name: Set up LLVM
         run: |
@@ -85,8 +58,6 @@ jobs:
 
       - name: Fetch source
         run: |
-          # mkdir cf_source_dir
-          # curl -L "https://archive.mozilla.org/pub/firefox/releases/${version}/source/firefox-${version}.source.tar.xz"  | tar -xJ -C cf_source_dir --strip-components=1
           git clone --branch ${version} --depth 1 https://github.com/mozilla-firefox/firefox.git cf_source_dir
 
       - name: Setup and bootstrap
