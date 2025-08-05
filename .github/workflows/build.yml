@@ -6,6 +6,7 @@ on:
 
 env:
   version: "FIREFOX_140_1_0esr_RELEASE"
+  rust_version: 1.86.0
 
 jobs:
   build:
@@ -60,16 +61,15 @@ jobs:
       - name: Build
         run: |
           export target=${{ matrix.target }}
-          mkdir -p moz_obj
-          export MOZ_OBJDIR=$(realpath moz_obj)
-          python3 patch.py --mozconfig-only
           python3 patch.py
+          rustc -vV
+          ~/.mozbuild/clang/bin/ld.lld -V
           cd cf_source_dir
-          ./mach build
+          /usr/bin/time -v ./mach build
           ./mach package
-          for file in "$MOZ_OBJDIR"/dist/firefox-*.en-US.*.{zip,tar.xz,dmg}; do
+          for file in obj-*/dist/firefox-*.en-US.*.{zip,tar.xz,dmg}; do
             if [[ "$file" != *xpt_artifacts* ]]; then
-              export MOZ_ARTIFACT_FILE="$file"
+              export MOZ_ARTIFACT_FILE=$(realpath "$file")
               break
             fi
           done
@@ -80,9 +80,9 @@ jobs:
         with:
           name: ${{ matrix.target }}
           path: |
-            moz_obj/dist/*.tar.xz
-            moz_obj/dist/*.dmg
-            moz_obj/dist/*.zip
+            cf_source_dir/obj-*/dist/*.tar.xz
+            cf_source_dir/obj-*/dist/*.dmg
+            cf_source_dir/obj-*/dist/*.zip
 
   release:
     needs: build
