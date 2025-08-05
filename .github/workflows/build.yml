@@ -13,12 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [windows]
-        arch: [x86_64]
-        exclude:
-          # Fails (.mozbuild does not include clang++-cl)
-          - target: windows
-            arch: arm64
+        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu]
 
     steps:
       - name: Maximize build space
@@ -64,19 +59,26 @@ jobs:
 
       - name: Build
         run: |
-          export BUILD_TARGET=${{ matrix.target }},${{ matrix.arch }}
+          export target=${{ matrix.target }}
           mkdir -p moz_obj
           export MOZ_OBJDIR=$(realpath moz_obj)
-          python3 patch.py ${version} --mozconfig-only
-          python3 patch.py ${version}
-          cd cf_source_dir && ./mach build && ./mach package
-          export MOZ_ARTIFACT_FILE=$(realpath $MOZ_OBJDIR/dist/firefox-140.1.0.en-US.win64.zip)
+          python3 patch.py --mozconfig-only
+          python3 patch.py
+          cd cf_source_dir
+          ./mach build
+          ./mach package
+          for file in "$MOZ_OBJDIR"/dist/firefox-*.en-US.*.{zip,tar.xz,dmg}; do
+            if [[ "$file" != *xpt_artifacts* ]]; then
+              export MOZ_ARTIFACT_FILE="$file"
+              break
+            fi
+          done
           ./mach build installers-zh-CN
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}-${{ matrix.arch }}
+          name: ${{ matrix.target }}
           path: |
             moz_obj/dist/*.tar.xz
             moz_obj/dist/*.dmg

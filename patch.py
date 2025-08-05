@@ -37,7 +37,6 @@ class Patcher:
     """Patch and prepare the Camoufox source"""
 
     moz_target: str
-    target: str
 
     def camoufox_patches(self):
         """
@@ -80,12 +79,6 @@ class Patcher:
         # Add target option
         content += f"\nac_add_options --target={self.moz_target}\n"
 
-        # Add target-specific mozconfig if it exists
-        target_mozconfig = os.path.join("..", "assets", f"{self.target}.mozconfig")
-        if os.path.exists(target_mozconfig):
-            with open(target_mozconfig, 'r', encoding='utf-8') as f:
-                content += f.read()
-
         # Calculate new hash
         new_hash = hashlib.sha256(content.encode()).hexdigest()
 
@@ -103,43 +96,9 @@ def add_rustup(*targets):
         run(f'~/.cargo/bin/rustup target add "{rust_target}"')
 
 
-def _update_rustup(target):
-    """Add rust targets for the given target"""
-    if target == "linux":
-        add_rustup("aarch64-unknown-linux-gnu", "i686-unknown-linux-gnu")
-    elif target == "windows":
-        add_rustup("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc", "i686-pc-windows-msvc")
-    elif target == "macos":
-        add_rustup("x86_64-apple-darwin", "aarch64-apple-darwin")
-
-
 """
 Preparation
 """
-
-
-def extract_args():
-    """Get version and release from args"""
-    if len(args) != 1:
-        sys.stderr.write('error: please specify version and release of camoufox source')
-        sys.exit(1)
-    return args[0]
-
-
-AVAILABLE_TARGETS = ["linux", "windows", "macos"]
-AVAILABLE_ARCHS = ["x86_64", "arm64", "i686"]
-
-
-def extract_build_target():
-    """Get moz_target if passed to BUILD_TARGET environment variable"""
-
-    if os.environ.get('BUILD_TARGET'):
-        target, arch = os.environ['BUILD_TARGET'].split(',')
-        assert target in AVAILABLE_TARGETS, f"Unsupported target: {target}"
-        assert arch in AVAILABLE_ARCHS, f"Unsupported architecture: {arch}"
-    else:
-        target, arch = "linux", "x86_64"
-    return target, arch
 
 
 """
@@ -147,12 +106,10 @@ Launcher
 """
 
 if __name__ == "__main__":
-    # Extract args
-    VERSION = extract_args()
 
-    TARGET, ARCH = extract_build_target()
-    MOZ_TARGET = get_moz_target(TARGET, ARCH)
-    _update_rustup(TARGET)
+    MOZ_TARGET = os.getenv('target')
+    if MOZ_TARGET != 'x86_64-unknown-linux-gnu':
+        add_rustup(MOZ_TARGET)
 
     # Check if the folder exists
     if not os.path.exists('cf_source_dir/configure.py'):
@@ -160,7 +117,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Apply the patches
-    patcher = Patcher(MOZ_TARGET, TARGET)
+    patcher = Patcher(MOZ_TARGET)
     patcher.camoufox_patches()
 
     sys.exit(0)  # ensure 0 exit code
