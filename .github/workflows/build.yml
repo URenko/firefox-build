@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu]
+        target: [x86_64-unknown-linux-gnu]
 
     steps:
       - name: Maximize build space
@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y msitools
+          sudo apt-get install -y msitools xvfb
 
       - name: Fetch source
         run: |
@@ -59,12 +59,17 @@ jobs:
           free -h
 
       - name: Build
+        env:
+          DISPLAY: :99
+          MOZ_DISABLE_CONTENT_SANDBOX: 1
         run: |
           export target=${{ matrix.target }}
           python3 patch.py
           rustc -vV
           ~/.mozbuild/clang/bin/ld.lld -V
           cd cf_source_dir
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 3
           /usr/bin/time -v ./mach build
           ./mach package
           for file in obj-*/dist/firefox-*.en-US.*.{zip,tar.xz,dmg}; do
