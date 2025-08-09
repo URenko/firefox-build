@@ -10,14 +10,16 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu]
-
+        target: [x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu]
+    runs-on: ${{ contains(matrix.target, 'windows-msvc') && 'windows-2022' || 'ubuntu-24.04' }}
     steps:
+      - run: echo "Building for ${{ matrix.target }}"
+
       - name: Maximize build space
+        if: runner.os == 'Linux'
         uses: AdityaGarg8/remove-unwanted-software@v4.1
         with:
           remove-dotnet: "true"
@@ -28,29 +30,48 @@ jobs:
           remove-large-packages: "true"
           remove-cached-tools: "true"
           remove-swapfile: "true"
+        
+      - name: Remove large preinstalled software
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          echo Removing Android SDK...
+          rmdir /s /q "C:\Android"
+          rmdir /s /q "C:\Program Files (x86)\Android"
+          echo Removing preinstalled tools at %AGENT_TOOLSDIRECTORY%...
+          rmdir /s /q "%AGENT_TOOLSDIRECTORY%"
+          echo Removing Docker images...
+          docker image prune --all --force
+          echo Cleaning npm cache...
+          npm cache clean --force
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Check disk space
+        shell: bash
         run: df -h
 
       - name: Install dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y msitools
 
       - name: Fetch source
+        shell: bash
         run: |
           git clone --branch ${version} --depth 1 https://github.com/mozilla-firefox/firefox.git cf_source_dir
 
       - name: Setup and bootstrap
+        shell: bash
         run: |
           cd cf_source_dir && ./mach --no-interactive bootstrap --application-choice=browser
           git clone --depth 1 https://github.com/mozilla-l10n/firefox-l10n.git $HOME/.mozbuild/l10n-central
 
       - name: Create swap space
+        if: runner.os == 'Linux'
         run: |
           sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
@@ -59,13 +80,14 @@ jobs:
           free -h
 
       - name: Build
+        shell: bash
         run: |
           export target=${{ matrix.target }}
           python3 patch.py
           rustc -vV
           ~/.mozbuild/clang/bin/ld.lld -V
           cd cf_source_dir
-          /usr/bin/time -v ./mach build
+          ./mach build
           ./mach package
           for file in obj-*/dist/firefox-*.en-US.*.{zip,tar.xz,dmg}; do
             if [[ "$file" != *xpt_artifacts* ]]; then

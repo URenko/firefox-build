@@ -91,10 +91,10 @@ class Patcher:
 
 
 def add_rustup(rust_target):
-    run(f'~/.cargo/bin/rustup install {os.environ["rust_version"]}')
-    run(f'~/.cargo/bin/rustup default {os.environ["rust_version"]}')
-    if rust_target != 'x86_64-unknown-linux-gnu':
-        run(f'~/.cargo/bin/rustup target add --toolchain {os.environ["rust_version"]} "{rust_target}"')
+    run(f'rustup install {os.environ["rust_version"]}')
+    run(f'rustup default {os.environ["rust_version"]}')
+    # if rust_target != 'x86_64-unknown-linux-gnu':
+    #     run(f'rustup target add --toolchain {os.environ["rust_version"]} "{rust_target}"')
 
 
 """
